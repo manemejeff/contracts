@@ -1,10 +1,13 @@
-from django.forms import ModelForm, ChoiceField, Select
+from django.forms import ModelForm, ChoiceField, Select, MultipleChoiceField, SelectMultiple
 from . import models
+
+blank_choice = [('', '---------'), ]
 
 
 class OrgFilter(ModelForm):
     organizations_select = ChoiceField(
-        choices=[(org.id, org.organization_name) for org in models.Organization.objects.all()])
+        initial=('', '---'),
+        choices=blank_choice + [(org.id, org.organization_name) for org in models.Organization.objects.all()])
 
     class Meta:
         model = models.Organization
@@ -12,6 +15,7 @@ class OrgFilter(ModelForm):
         widgets = {
             'organizations_select': Select(attrs={'class': 'select'})
         }
+
 
 class ContractTypeFilter(ModelForm):
     contract_type_select = ChoiceField(
@@ -23,6 +27,7 @@ class ContractTypeFilter(ModelForm):
         widgets = {
             'contract_type_select': Select(attrs={'class': 'select'})
         }
+
 
 class CurrencyFilter(ModelForm):
     currency_select = ChoiceField(

@@ -5,7 +5,7 @@
     <title>Title</title>
 </head>
 <body>
-    <form action="/your-name/" method="post">
+    <form method="post">
         {% csrf_token %}
         <fieldset>
             {{ org_filter }}
@@ -15,6 +15,6 @@
         <input type="submit" value="Submit">
     </form>
 
-    {{ tbl|safe }}
+    {{ detail_tbl|safe }}
 </body>
 </html>
