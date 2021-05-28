@@ -22,13 +22,33 @@ class Index(View):
         return render(request, 'contracts/index.html', context=context)
 
     def post(self, request):
-        f_org = list(map(int, request.POST.getlist('organizations_select')))
-        # print(Organization.objects.get(pk=f_org))
-        print(f_org)
+        f_org = None
+        f_type = None
+        f_cur = None
+
+        # TODO избавиться от обращения к каждому полю, (мб изменить названия чтоб их можно было маппить на дф)
+
+        if request.POST['organizations_select']:
+            f_org = list(map(int, request.POST.getlist('organizations_select')))
+            # print(Organization.objects.get(pk=f_org))
+            print(f_org)
+
+        if request.POST['contract_type_select']:
+            f_type = list(map(int, request.POST.getlist('contract_type_select')))
+            print(f_type)
+
+        if request.POST['currency_select']:
+            f_cur = list(map(int, request.POST.getlist('currency_select')))
+            print(f_cur)
+
         detail_tbl = pd.DataFrame.from_records(Contract.objects.all().values())
-        # print(detail_tbl)
-        detail_tbl = detail_tbl[detail_tbl.organization_id.isin(f_org)]
-        # print(detail_tbl)
+
+        if f_org:
+            detail_tbl = detail_tbl[detail_tbl.organization_id.isin(f_org)]
+        if f_type:
+            detail_tbl = detail_tbl[detail_tbl.type_id.isin(f_type)]
+        if f_cur:
+            detail_tbl = detail_tbl[detail_tbl.currency_id.isin(f_cur)]
 
         context = {
             'org_filter': OrgFilter(),
