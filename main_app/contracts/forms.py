@@ -1,4 +1,4 @@
-from django.forms import ModelForm, ChoiceField, Select, MultipleChoiceField, SelectMultiple
+from django.forms import Form, ModelForm, ChoiceField, Select, MultipleChoiceField, SelectMultiple, DateField, DateInput
 from . import models
 
 blank_choice = [('', '---------'), ]
@@ -48,3 +48,18 @@ class CurrencyFilter(ModelForm):
         widgets = {
             'currency_select': SelectMultiple(attrs={'class': 'select'})
         }
+
+class MyDateInput(DateInput):
+    input_type = 'date'
+
+class DatePicker(Form):
+    start_date = DateField(widget=MyDateInput)
+    end_date = DateField(widget=MyDateInput)
+    report_type = ChoiceField(
+        choices=[(1, 'Помесячный'),
+                 (2, 'Понедельный'),
+                 (3, 'Ежедневный')]
+    )
+
+    class Meta:
+        fields = ('start_date', 'end_date')

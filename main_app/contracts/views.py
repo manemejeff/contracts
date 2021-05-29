@@ -1,8 +1,9 @@
 import pandas as pd
 from django.shortcuts import render, redirect
 from django.views import View
+from django.forms import DateField
 
-from .forms import OrgFilter, ContractTypeFilter, CurrencyFilter
+from .forms import OrgFilter, ContractTypeFilter, CurrencyFilter, DatePicker
 from .models import Contract, Organization
 
 
@@ -18,6 +19,7 @@ class Index(View):
             'contract_type_filter': ContractTypeFilter(),
             'currency_filter': CurrencyFilter(),
             'detail_tbl': detail_tbl,
+            'date_picker': DatePicker(),
         }
         return render(request, 'contracts/index.html', context=context)
 
@@ -27,7 +29,7 @@ class Index(View):
         f_cur = None
 
         # TODO избавиться от обращения к каждому полю, (мб изменить названия чтоб их можно было маппить на дф)
-
+        print(request.POST)
         if request.POST['organizations_select']:
             f_org = list(map(int, request.POST.getlist('organizations_select')))
             # print(Organization.objects.get(pk=f_org))
@@ -55,6 +57,7 @@ class Index(View):
             'contract_type_filter': ContractTypeFilter(),
             'currency_filter': CurrencyFilter(),
             'detail_tbl': detail_tbl.to_html(),
+            'date_picker': DatePicker(),
         }
 
         return render(request, 'contracts/index.html', context=context)
