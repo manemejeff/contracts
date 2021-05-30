@@ -8,10 +8,14 @@
     <form method="post">
         {% csrf_token %}
         <fieldset>
-            {{ org_filter }}
-            {{ contract_type_filter }}
-            {{ currency_filter }}
-            {{ date_picker }}
+            <div>
+                {{ org_filter }}
+                {{ contract_type_filter }}
+                {{ currency_filter }}
+            </div>
+            <div>
+                {{ date_picker }}
+            </div>
         </fieldset>
         <input type="submit" value="Submit">
     </form>

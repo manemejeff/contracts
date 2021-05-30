@@ -28,8 +28,10 @@ class Index(View):
         f_type = None
         f_cur = None
 
+        # Собираем фильтры по организации, типу, валюте
         # TODO избавиться от обращения к каждому полю, (мб изменить названия чтоб их можно было маппить на дф)
         print(request.POST)
+
         if request.POST['organizations_select']:
             f_org = list(map(int, request.POST.getlist('organizations_select')))
             # print(Organization.objects.get(pk=f_org))
@@ -43,8 +45,13 @@ class Index(View):
             f_cur = list(map(int, request.POST.getlist('currency_select')))
             print(f_cur)
 
+        start_date = request.POST['start_date']
+        end_date = request.POST['end_date']
+        report_type = request.POST['report_type']
+
         detail_tbl = pd.DataFrame.from_records(Contract.objects.all().values())
 
+        # Фильтруем по организации, типу, валюте
         if f_org:
             detail_tbl = detail_tbl[detail_tbl.organization_id.isin(f_org)]
         if f_type:
@@ -53,11 +60,11 @@ class Index(View):
             detail_tbl = detail_tbl[detail_tbl.currency_id.isin(f_cur)]
 
         context = {
-            'org_filter': OrgFilter(),
-            'contract_type_filter': ContractTypeFilter(),
-            'currency_filter': CurrencyFilter(),
+            'org_filter': OrgFilter(request.POST),
+            'contract_type_filter': ContractTypeFilter(request.POST),
+            'currency_filter': CurrencyFilter(request.POST),
             'detail_tbl': detail_tbl.to_html(),
-            'date_picker': DatePicker(),
+            'date_picker': DatePicker(request.POST),
         }
 
         return render(request, 'contracts/index.html', context=context)

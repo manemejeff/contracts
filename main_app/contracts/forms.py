@@ -11,7 +11,6 @@ class OrgFilter(ModelForm):
         required=False,
     )
 
-
     class Meta:
         model = models.Organization
         fields = ('organizations_select',)
@@ -49,8 +48,10 @@ class CurrencyFilter(ModelForm):
             'currency_select': SelectMultiple(attrs={'class': 'select'})
         }
 
+
 class MyDateInput(DateInput):
     input_type = 'date'
+
 
 class DatePicker(Form):
     start_date = DateField(widget=MyDateInput)
@@ -60,6 +61,13 @@ class DatePicker(Form):
                  (2, 'Понедельный'),
                  (3, 'Ежедневный')]
     )
+    dimensions = MultipleChoiceField(
+        choices=[
+            (models.Organization.objects.all(), 'Организация'),
+            (models.ContractType.objects.all(), 'Тип Контракта'),
+            (models.Currency.objects.all(), 'Валюта')
+        ]
+    )
 
     class Meta:
-        fields = ('start_date', 'end_date')
+        fields = ('start_date', 'end_date', 'report_type', 'dimensions')
