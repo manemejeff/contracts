@@ -43,7 +43,7 @@ def get_weeks_end(date1_str: str, date2_str: str) -> list:
     return dates
 
 
-def date_range(start_date: datetime.datetime, end_date: datetime.datetime) -> datetime.datetime:
+def date_range(start_date: str, end_date: str) -> datetime.datetime:
     """
     Генератор дат из диапазона
 
@@ -51,6 +51,10 @@ def date_range(start_date: datetime.datetime, end_date: datetime.datetime) -> da
     :param end_date:
     :return:
     """
+
+    start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d')
+    end_date = datetime.datetime.strptime(end_date, '%Y-%m-%d')
+
     for n in range(int((end_date - start_date).days)):
         yield start_date + datetime.timedelta(n)
 

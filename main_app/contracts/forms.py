@@ -63,9 +63,9 @@ class DatePicker(Form):
     )
     dimensions = MultipleChoiceField(
         choices=[
-            (models.Organization.objects.all(), 'Организация'),
-            (models.ContractType.objects.all(), 'Тип Контракта'),
-            (models.Currency.objects.all(), 'Валюта')
+            (1, 'Организация'),
+            (2, 'Тип Контракта'),
+            (3, 'Валюта')
         ]
     )
 
