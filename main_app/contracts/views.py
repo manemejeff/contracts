@@ -1,7 +1,7 @@
 import pandas as pd
 from django.shortcuts import render, redirect
 from django.views import View
-from django.forms import DateField
+from django.db.models import Sum
 
 from .forms import OrgFilter, ContractTypeFilter, CurrencyFilter, DatePicker
 from .models import Contract, Organization, ContractType, Currency
@@ -33,29 +33,23 @@ class Index(View):
         f_cur = None
 
         # Собираем фильтры по организации, типу, валюте
-        # TODO избавиться от обращения к каждому полю, (мб изменить названия чтоб их можно было маппить на дф)
+        # думаю что можно избавиться от обращения к каждому полю, (мб изменить названия чтоб их можно было маппить на дф)
         print(request.POST)
-        # print(self.qs)
         if request.POST['organizations_select']:
             f_org = list(map(int, request.POST.getlist('organizations_select')))
             # print(Organization.objects.get(pk=f_org))
-            print(f_org)
 
         if request.POST['contract_type_select']:
             f_type = list(map(int, request.POST.getlist('contract_type_select')))
-            print(f_type)
 
         if request.POST['currency_select']:
             f_cur = list(map(int, request.POST.getlist('currency_select')))
-            print(f_cur)
 
         start_date = request.POST['start_date']
         end_date = request.POST['end_date']
         report_type = request.POST['report_type']
         dimensions = request.POST.getlist('dimensions')
         print(dimensions)
-
-        # detail_tbl = pd.DataFrame.from_records(Contract.objects.all().values())
 
         # Фильтруем по организации, типу, валюте
         if f_org:
@@ -81,11 +75,18 @@ class Index(View):
         org_master_tbl = None
         ctype_master_tbl = None
         cur_master_tbl = None
-        # I bet there is a better way x_x
+        # Как не посмотри, а это плохо x_x (вложенный цикл + DRY)
         if '1' in dimensions:
             # Organization
             org_master_tbl = pd.DataFrame(index=list(Organization.objects.all()), columns=[d.strftime('%Y-%m-%d') for d in dates])
-            print(org_master_tbl)
+            for d in dates:
+                d = d.strftime('%Y-%m-%d')
+                for org in list(Organization.objects.all()):
+                    org_master_tbl[d][org] = Contract.objects.filter(
+                        contract_start_date__lte=d,
+                        contract_end_date__gte=d,
+                        organization__organization_name=org
+                    ).aggregate(sum_amount=Sum('contract_amount'))['sum_amount']
         if '2' in dimensions:
             # ContractType
             ctype_master_tbl = pd.DataFrame(index=list(ContractType.objects.all()), columns=[d.strftime('%Y-%m-%d') for d in dates])
@@ -94,7 +95,7 @@ class Index(View):
             cur_master_tbl = pd.DataFrame(index=list(Currency.objects.all()), columns=[d.strftime('%Y-%m-%d') for d in dates])
 
         master_tbl = pd.concat([org_master_tbl, ctype_master_tbl, cur_master_tbl])
-        print(master_tbl)
+        print(self.detail_tbl)
 
         context = {
             'org_filter': OrgFilter(request.POST),
@@ -102,6 +103,7 @@ class Index(View):
             'currency_filter': CurrencyFilter(request.POST),
             'detail_tbl': self.detail_tbl.to_html(),
             'date_picker': DatePicker(request.POST),
+            'master_tbl': master_tbl.to_html(),
         }
 
         return render(request, 'contracts/index.html', context=context)
