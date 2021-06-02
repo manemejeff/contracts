@@ -5,7 +5,7 @@ from django.db.models import Sum
 
 from .forms import OrgFilter, ContractTypeFilter, CurrencyFilter, DatePicker
 from .models import Contract, Organization, ContractType, Currency
-from .utils import get_months_end, get_weeks_end, date_range
+from .utils import get_months_end, get_weeks_end, date_range, apply_filters_to_queryset
 
 
 # Create your views here.
@@ -75,24 +75,46 @@ class Index(View):
         org_master_tbl = None
         ctype_master_tbl = None
         cur_master_tbl = None
-        # Как не посмотри, а это плохо x_x (вложенный цикл + DRY)
+        # Это плохо x_x (вложенный цикл + DRY)
         if '1' in dimensions:
             # Organization
             org_master_tbl = pd.DataFrame(index=list(Organization.objects.all()), columns=[d.strftime('%Y-%m-%d') for d in dates])
             for d in dates:
                 d = d.strftime('%Y-%m-%d')
                 for org in list(Organization.objects.all()):
-                    org_master_tbl[d][org] = Contract.objects.filter(
+                    qs = Contract.objects.filter(
                         contract_start_date__lte=d,
                         contract_end_date__gte=d,
-                        organization__organization_name=org
-                    ).aggregate(sum_amount=Sum('contract_amount'))['sum_amount']
+                        organization__organization_name=org,
+                    )
+                    qs = apply_filters_to_queryset(qs, f_org, f_type, f_cur)
+                    org_master_tbl[d][org] = qs.aggregate(sum_amount=Sum('contract_amount'))['sum_amount']
         if '2' in dimensions:
             # ContractType
             ctype_master_tbl = pd.DataFrame(index=list(ContractType.objects.all()), columns=[d.strftime('%Y-%m-%d') for d in dates])
+            for d in dates:
+                d = d.strftime('%Y-%m-%d')
+                for cont_type in list(ContractType.objects.all()):
+                    qs = Contract.objects.filter(
+                        contract_start_date__lte=d,
+                        contract_end_date__gte=d,
+                        type__type_name=cont_type,
+                    )
+                    qs = apply_filters_to_queryset(qs, f_org, f_type, f_cur)
+                    ctype_master_tbl[d][cont_type] = qs.aggregate(sum_amount=Sum('contract_amount'))['sum_amount']
         if '3' in dimensions:
             # Currency
             cur_master_tbl = pd.DataFrame(index=list(Currency.objects.all()), columns=[d.strftime('%Y-%m-%d') for d in dates])
+            for d in dates:
+                d = d.strftime('%Y-%m-%d')
+                for cur in list(Currency.objects.all()):
+                    qs = Contract.objects.filter(
+                        contract_start_date__lte=d,
+                        contract_end_date__gte=d,
+                        currency__name=cur,
+                    )
+                    qs = apply_filters_to_queryset(qs, f_org, f_type, f_cur)
+                    cur_master_tbl[d][cur] = qs.aggregate(sum_amount=Sum('contract_amount'))['sum_amount']
 
         master_tbl = pd.concat([org_master_tbl, ctype_master_tbl, cur_master_tbl])
         print(self.detail_tbl)
