@@ -5,13 +5,12 @@ from django.db.models import Sum
 
 from .forms import OrgFilter, ContractTypeFilter, CurrencyFilter, DatePicker
 from .models import Contract, Organization, ContractType, Currency
-from .utils import get_months_end, get_weeks_end, date_range, apply_filters_to_queryset
+from .utils import get_months_end, get_weeks_end, date_range, apply_filters_to_queryset, get_master_table, get_dates
 
 
 # Create your views here.
 
 class Index(View):
-
     qs = Contract.objects.all()
     detail_tbl = pd.DataFrame.from_records(qs.values())
 
@@ -33,7 +32,7 @@ class Index(View):
         f_cur = None
 
         # Собираем фильтры по организации, типу, валюте
-        # думаю что можно избавиться от обращения к каждому полю, (мб изменить названия чтоб их можно было маппить на дф)
+        # избавиться от обращения к каждому полю, (мб изменить названия чтоб их можно было маппить на дф)
         print(request.POST)
         if request.POST['organizations_select']:
             f_org = list(map(int, request.POST.getlist('organizations_select')))
@@ -49,7 +48,7 @@ class Index(View):
         end_date = request.POST['end_date']
         report_type = request.POST['report_type']
         dimensions = request.POST.getlist('dimensions')
-        print(dimensions)
+        # print(dimensions)
 
         # Фильтруем по организации, типу, валюте
         if f_org:
@@ -59,65 +58,20 @@ class Index(View):
         if f_cur:
             self.detail_tbl = self.detail_tbl[self.detail_tbl.currency_id.isin(f_cur)]
 
-        dates = None
-        if report_type == '1':
-            # monthly
-            dates = get_months_end(start_date, end_date)
-        elif report_type == '2':
-            # weekly
-            dates = get_weeks_end(start_date, end_date)
-        elif report_type == '3':
-            # daily
-            dates = [d for d in date_range(start_date, end_date)]
-        else:
-            raise Exception('Wrong report type')
+        dates = get_dates(report_type, start_date, end_date)
+        # if report_type == '1':
+        #     # monthly
+        #     dates = get_months_end(start_date, end_date)
+        # elif report_type == '2':
+        #     # weekly
+        #     dates = get_weeks_end(start_date, end_date)
+        # elif report_type == '3':
+        #     # daily
+        #     dates = [d for d in date_range(start_date, end_date)]
+        # else:
+        #     raise Exception('Wrong report type')
 
-        org_master_tbl = None
-        ctype_master_tbl = None
-        cur_master_tbl = None
-        # Это плохо x_x (вложенный цикл + DRY)
-        if '1' in dimensions:
-            # Organization
-            org_master_tbl = pd.DataFrame(index=list(Organization.objects.all()), columns=[d.strftime('%Y-%m-%d') for d in dates])
-            for d in dates:
-                d = d.strftime('%Y-%m-%d')
-                for org in list(Organization.objects.all()):
-                    qs = Contract.objects.filter(
-                        contract_start_date__lte=d,
-                        contract_end_date__gte=d,
-                        organization__organization_name=org,
-                    )
-                    qs = apply_filters_to_queryset(qs, f_org, f_type, f_cur)
-                    org_master_tbl[d][org] = qs.aggregate(sum_amount=Sum('contract_amount'))['sum_amount']
-        if '2' in dimensions:
-            # ContractType
-            ctype_master_tbl = pd.DataFrame(index=list(ContractType.objects.all()), columns=[d.strftime('%Y-%m-%d') for d in dates])
-            for d in dates:
-                d = d.strftime('%Y-%m-%d')
-                for cont_type in list(ContractType.objects.all()):
-                    qs = Contract.objects.filter(
-                        contract_start_date__lte=d,
-                        contract_end_date__gte=d,
-                        type__type_name=cont_type,
-                    )
-                    qs = apply_filters_to_queryset(qs, f_org, f_type, f_cur)
-                    ctype_master_tbl[d][cont_type] = qs.aggregate(sum_amount=Sum('contract_amount'))['sum_amount']
-        if '3' in dimensions:
-            # Currency
-            cur_master_tbl = pd.DataFrame(index=list(Currency.objects.all()), columns=[d.strftime('%Y-%m-%d') for d in dates])
-            for d in dates:
-                d = d.strftime('%Y-%m-%d')
-                for cur in list(Currency.objects.all()):
-                    qs = Contract.objects.filter(
-                        contract_start_date__lte=d,
-                        contract_end_date__gte=d,
-                        currency__name=cur,
-                    )
-                    qs = apply_filters_to_queryset(qs, f_org, f_type, f_cur)
-                    cur_master_tbl[d][cur] = qs.aggregate(sum_amount=Sum('contract_amount'))['sum_amount']
-
-        master_tbl = pd.concat([org_master_tbl, ctype_master_tbl, cur_master_tbl])
-        print(self.detail_tbl)
+        master_tbl = get_master_table(f_org, f_type, f_cur, dates, dimensions)
 
         context = {
             'org_filter': OrgFilter(request.POST),

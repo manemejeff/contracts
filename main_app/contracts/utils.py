@@ -63,7 +63,8 @@ def date_range(start_date: str, end_date: str) -> datetime.datetime:
         yield start_date + datetime.timedelta(n)
 
 
-def apply_filters_to_queryset(qs: QuerySet, f_org: List[int] = None, f_type: List[int] = None, f_cur: List[int] = None) -> QuerySet:
+def apply_filters_to_queryset(qs: QuerySet, f_org: List[int] = None, f_type: List[int] = None,
+                              f_cur: List[int] = None) -> QuerySet:
     """
     Применяем фильтр по организации, типу контракта и валюте к QuerySet
 
@@ -75,15 +76,17 @@ def apply_filters_to_queryset(qs: QuerySet, f_org: List[int] = None, f_type: Lis
     """
 
     if f_org:
-        qs.filter(organization__pk__in=f_org)
+        qs = qs.filter(organization__pk__in=f_org)
     if f_type:
-        qs.filter(type__pk__in=f_type)
+        qs = qs.filter(type__pk__in=f_type)
     if f_cur:
-        qs.filter(currency__in__=f_cur)
+        qs = qs.filter(currency__in__=f_cur)
 
     return qs
 
-def get_master_table(f_org, f_type, f_cur, dates, dimensions) -> pd.DataFrame:
+
+def get_master_table(f_org: List[int], f_type: List[int], f_cur: List[int], dates: List[datetime.datetime],
+                     dimensions: List[str]) -> pd.DataFrame:
     org_master_tbl = None
     ctype_master_tbl = None
     cur_master_tbl = None
@@ -100,7 +103,9 @@ def get_master_table(f_org, f_type, f_cur, dates, dimensions) -> pd.DataFrame:
                     contract_end_date__gte=d,
                     organization__organization_name=org,
                 )
+                print(f_org)
                 qs = apply_filters_to_queryset(qs, f_org, f_type, f_cur)
+                print(qs)
                 org_master_tbl[d][org] = qs.aggregate(sum_amount=Sum('contract_amount'))['sum_amount']
     if '2' in dimensions:
         # ContractType
@@ -132,6 +137,22 @@ def get_master_table(f_org, f_type, f_cur, dates, dimensions) -> pd.DataFrame:
                 cur_master_tbl[d][cur] = qs.aggregate(sum_amount=Sum('contract_amount'))['sum_amount']
 
     return pd.concat([org_master_tbl, ctype_master_tbl, cur_master_tbl])
+
+
+def get_dates(report_type: str, start_date: str, end_date: str) -> List[datetime.datetime]:
+    if report_type == '1':
+        # monthly
+        return get_months_end(start_date, end_date)
+    elif report_type == '2':
+        # weekly
+        return get_weeks_end(start_date, end_date)
+    elif report_type == '3':
+        # daily
+        dates = [d for d in date_range(start_date, end_date)]
+        return dates
+    else:
+        raise Exception('Wrong report type')
+
 
 if __name__ == '__main__':
     # get_months_end('2021-03-2', '2021-05-25')
