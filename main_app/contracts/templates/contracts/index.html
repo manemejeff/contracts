@@ -19,7 +19,30 @@
         </fieldset>
         <input type="submit" value="Submit">
     </form>
+    <div>
+        <h1>Мастер Таблица</h1>
+        {{ master_tbl|safe }}
+        {% if detail_tbl %}
+        <h1>Детализация</h1>
 
-    {{ detail_tbl|safe }}
+        <table>
+            <tr>
+                <th>Организация</th>
+                <th>Тип Контракта</th>
+                <th>Валюта</th>
+                <th>Сумма</th>
+            </tr>
+            {% for row in detail_tbl %}
+            <tr>
+                <td>{{row.organization}}</td>
+                <td>{{row.type}}</td>
+                <td>{{row.currency}}</td>
+                <td>{{row.contract_amount}}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        {% endif %}
+    </div>
 </body>
 </html>
