@@ -14,22 +14,24 @@ class Index(View):
 
     def get(self, request):
 
-        if request.session['master_tbl']:
-            master_tbl = pd.read_json(request.session['master_tbl'], orient='split')
-            master_tbl = master_tbl.rename(columns=lambda x: x.strftime('%Y-%m-%d'))
 
+        post_data = request.session.get('post_data', None)
         context = {
-            'org_filter': OrgFilter(request.session['post_data']),
-            'contract_type_filter': ContractTypeFilter(request.session['post_data']),
-            'currency_filter': CurrencyFilter(request.session['post_data']),
-            'date_picker': DatePicker(request.session['post_data']),
-            'master_tbl': master_tbl.to_html(escape=False),
+            'org_filter': OrgFilter(post_data),
+            'contract_type_filter': ContractTypeFilter(post_data),
+            'currency_filter': CurrencyFilter(post_data),
+            'date_picker': DatePicker(post_data),
         }
 
         org_par = request.GET.get('org', '')
         type_par = request.GET.get('type', '')
         cur_par = request.GET.get('cur', '')
         date_par = request.GET.get('date', '')
+
+        if request.session.get('master_tbl', None):
+            master_tbl = pd.read_json(request.session['master_tbl'], orient='split')
+            master_tbl = master_tbl.rename(columns=lambda x: x.strftime('%Y-%m-%d'))
+            context['master_tbl'] = master_tbl.to_html(escape=False)
 
         if date_par:
             context['detail_tbl'] = create_detail_queryset(org_par, type_par, cur_par, date_par,
