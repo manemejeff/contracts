@@ -1,2 +1,1 @@
-web: cd main_app
-web: gunicorn main_app.wsgi
+web: gunicorn --chdir main_app main_app.wsgi
